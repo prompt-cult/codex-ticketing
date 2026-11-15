@@ -16,9 +16,28 @@
 io.stdout:setvbuf('no')
 io.stderr:setvbuf('no')
 
+-- Bootstrap module paths for the runtime's extension loaders (lunet.http,
+-- sqlite3, jsonic, …). Works both when running via lunet-run from the repo
+-- root and when the app is embedded in a .run with the lunet/ tree beside it.
+local function prepend_module_path()
+    local entries = {
+        { "path", ".lunet/v0.19.0/?.lua" },
+        { "cpath", ".lunet/v0.19.0/?.so" },
+        { "cpath", "./?.so" },
+    }
+    for _, e in ipairs(entries) do
+        local field, patt = e[1], e[2]
+        if not package[field]:find(patt, 1, true) then
+            package[field] = patt .. ";" .. package[field]
+        end
+    end
+end
+prepend_module_path()
+
 local VERBOSE = false
-for i = 1, #arg do
-    if arg[i] == "-v" or arg[i] == "--verbose" then
+local arg_list = arg or {}
+for i = 1, #arg_list do
+    if arg_list[i] == "-v" or arg_list[i] == "--verbose" then
         VERBOSE = true
         break
     end

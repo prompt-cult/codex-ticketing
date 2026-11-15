@@ -14,7 +14,7 @@ else
   LUNET_BIN := .lunet/$(LUNET_VERSION)/lunet-run
 endif
 
-.PHONY: all build run run-trace test test-mcp help clean clean-all
+.PHONY: all build run run-trace test test-mcp embed clean clean-all
 
 all: help
 
@@ -40,6 +40,11 @@ test: build
 # Full MCP flow test against a running server.
 test-mcp:
 	@./test/test_mcp_flow.sh
+
+# Build the single-file embedded executable (macOS arm64; see
+# scripts/build_embed_macos.sh for prereqs and the runtime-loader caveat).
+embed:
+	@./scripts/build_embed_macos.sh
 
 clean:
 	@rm -rf .tmp/*.log

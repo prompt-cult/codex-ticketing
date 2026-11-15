@@ -61,6 +61,17 @@ curl http://127.0.0.1:8080/ui      # local web UI
 curl http://127.0.0.1:8080/api/stats
 ```
 
+## Single-file embedded executable (L5 stretch)
+
+`make embed` builds `codex-ticketing-macos-arm64.run` (in
+`.tmp/dist/codex-ticketing-macos-arm64/`): the app's Lua tree is compiled
+INTO the binary via the official Lunet release SDK
+(`lunet-macos-sdk.tar.gz`, v0.19.0) — `generate_embed_scripts.lua` →
+blob header → `cc` + `liblunet-static.a`. The static core does not include
+the optional extension loaders (`lunet.http`, `sqlite3`, `jsonic`, …), so
+the runtime's `lunet/` loader tree is staged beside the binary (documented
+SDK caveat). The app self-locates loaders (`.lunet/<ver>/` or `./lunet/`).
+
 ## Install as a Codex plugin (local marketplace)
 
 ```sh
