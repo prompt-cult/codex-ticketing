@@ -1,1 +1,7 @@
 .tmp/
+.lunet/
+types/
+.env
+*.db
+*.db-wal
+*.db-shm
