@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "codex-ticketing",
+  "version": "0.1.0",
+  "description": "Ticketing system for Codex agents: immutable tickets, append-only comments, status-only mutation, session-scoped ownership.",
+  "author": { "name": "prompt-cult" },
+  "keywords": ["ticketing", "tickets", "project management", "agent"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Codex Ticketing",
+        "shortDescription": "Create and manage tickets from Codex",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"]
+      },
+      "onboardingSkill": "./skills/codex-ticketing/SKILL.md"
+    }
+  }
+}
