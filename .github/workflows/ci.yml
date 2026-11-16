@@ -1,0 +1,36 @@
+# CI: verify the plugin end-to-end on every push/PR to main.
+# Boots the MCP server on the pinned upstream lunet runtime and runs the full
+# MCP flow test (initialize, tools, add/get/list/comment/status, error
+# envelopes, supersede soft-delete, include_deleted).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  flow-test:
+    runs-on: ubuntu-24.04
+    env:
+      LUNET_VERSION: v0.19.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch pinned upstream lunet runtime (digest-verified)
+        run: ./scripts/fetch_runtime.sh linux-amd64
+
+      - name: Start MCP server
+        run: |
+          PORT=8099 TICKETS_DB=.tmp/tickets_ci.db ./run.sh > .tmp/ci_server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf --max-time 2 http://127.0.0.1:8099/ >/dev/null && break
+            sleep 1
+          done
+          cat .tmp/ci_server.log
+
+      - name: Full MCP flow test
+        run: ./test/test_mcp_flow.sh 8099

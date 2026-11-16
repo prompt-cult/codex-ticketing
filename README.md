@@ -72,6 +72,18 @@ the optional extension loaders (`lunet.http`, `sqlite3`, `jsonic`, …), so
 the runtime's `lunet/` loader tree is staged beside the binary (documented
 SDK caveat). The app self-locates loaders (`.lunet/<ver>/` or `./lunet/`).
 
+## Release (CI)
+
+CI runs the full MCP flow test on every push/PR (`.github/workflows/ci.yml`).
+On a `v*` tag, `release.yml` builds all four platform bundles
+(`scripts/build_release.sh <macos|linux-amd64|linux-arm64|windows-amd64>` —
+each fetches the pinned upstream lunet runtime and verifies its SHA-256
+against the digest GitHub publishes per release asset, fail-closed), then
+publishes the archives + per-asset `.sha256` digests + release notes
+(`RELEASE.md`) to the GitHub release. Bundling is pure packaging (upstream
+ships prebuilt `lunet-run` binaries), so one Linux runner builds every
+platform.
+
 ## Install as a Codex plugin (local marketplace)
 
 ```sh

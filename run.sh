@@ -21,6 +21,10 @@ echo "Starting codex-ticketing MCP server..."
 echo "Port: $PORT  Store: $TICKETS_DB  Trace: $MCP_TRACE"
 
 LUNET_BIN=".lunet/${LUNET_VERSION}/lunet-run"
+if [ ! -f "$LUNET_BIN" ] && [ -f "./lunet-run" ]; then
+	# Release bundle layout: the runtime sits at the bundle root.
+	LUNET_BIN="./lunet-run"
+fi
 if [ ! -f "$LUNET_BIN" ] && [ -f "./bin/lunet" ]; then
 	LUNET_BIN="./bin/lunet"
 fi

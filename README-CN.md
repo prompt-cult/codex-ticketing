@@ -59,6 +59,17 @@ curl http://127.0.0.1:8080/ui      # 本地网页 UI
 curl http://127.0.0.1:8080/api/stats
 ```
 
+## 发布（CI）
+
+每次 push/PR，CI 会运行完整 MCP 流程测试（`.github/workflows/ci.yml`）。
+推送 `v*` tag 时，`release.yml` 构建全部四个平台打包
+（`scripts/build_release.sh <macos|linux-amd64|linux-arm64|windows-amd64>` —
+每个都拉取固定的上游 lunet 运行时，并按 GitHub release 资产公布的
+SHA-256 digest 校验，失败即中止），随后将压缩包、逐资产 `.sha256`
+校验文件与发布说明（`RELEASE.md`）发布到 GitHub release。打包是纯
+装配（上游提供预编译 `lunet-run` 二进制），单个 Linux runner 即可
+构建全部平台。
+
 ## 安装为 Codex 插件（本地 marketplace）
 
 ```sh

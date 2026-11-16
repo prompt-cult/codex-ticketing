@@ -1,0 +1,48 @@
+# Release: on a vX.Y.Z tag, build the 4-platform release archives, verify
+# their digests, and publish them to the GitHub release with sha256 digests
+# per asset — the lua-lunet/lunet-mcp release pattern.
+#
+# Bundling is pure packaging (upstream ships prebuilt lunet-run binaries), so
+# one Linux runner builds every platform.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-24.04
+    env:
+      LUNET_VERSION: v0.19.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build all 4 platform bundles
+        run: |
+          for p in macos linux-amd64 linux-arm64 windows-amd64; do
+            ./scripts/build_release.sh "$p"
+          done
+          ls -la .tmp/dist/
+
+      - name: Publish release with sha256 digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VER="${TAG#v}"
+          sed "s/@VERSION@/${VER}/g" RELEASE.md > .tmp/release_notes.md
+          gh release create "$TAG" \
+            --title "codex-ticketing ${TAG}" \
+            --notes-file .tmp/release_notes.md \
+            .tmp/dist/codex-ticketing-macos.tar.gz \
+            .tmp/dist/codex-ticketing-macos.sha256 \
+            .tmp/dist/codex-ticketing-linux-amd64.tar.gz \
+            .tmp/dist/codex-ticketing-linux-amd64.sha256 \
+            .tmp/dist/codex-ticketing-linux-arm64.tar.gz \
+            .tmp/dist/codex-ticketing-linux-arm64.sha256 \
+            .tmp/dist/codex-ticketing-windows-amd64.zip \
+            .tmp/dist/codex-ticketing-windows-amd64.sha256
