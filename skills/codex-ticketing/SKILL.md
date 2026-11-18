@@ -29,6 +29,23 @@ what was decided and why.
 - **Errors**: tools return `{code, message, corrected_call?}`. Re-emit
   `corrected_call` to recover in one call.
 
+## Server lifecycle
+
+The MCP server must be running for the tools to answer: `http://127.0.0.1:8080/mcp`
+(override with `PORT`). Use `serve.sh` (POSIX sh, shellcheck-clean, lives in
+this skill's directory) instead of spawning servers yourself:
+
+1. **Find**: check the pid file next to the ticket DB —
+   `~/.codex/ticketing/server.pid` (default), beside a `TICKETS_DB` path, or
+   `<git repo root>/.ticketing/server.pid` (`--repo-local`). A live pid there
+   means the shared server is up; **do not spawn another**.
+2. **Start** (stale pid file or none at all): `serve.sh start` — idempotent:
+   it cleans up a stale pid file, starts the shared server, and waits until
+   it answers.
+3. **Restart** after config/env changes: `serve.sh restart` (stop + start).
+4. **Stop**: `serve.sh stop`. **Inspect**: `serve.sh status` (exit non-zero
+   when down) reports pid, port, and effective DB path.
+
 ## Flow
 
 1. `ticket_add` with `todo` (one line), `md_content` (spec), `session_id`

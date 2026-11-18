@@ -18,6 +18,8 @@ digest beside each asset:
   `PORT`/`HOST` env). Ticket DB: `TICKETS_DB` env > `--repo-local` flag
   (`<git repo root>/.ticketing/tickets.db`) > default
   `~/.codex/ticketing/tickets.db` (shared, dir created at startup).
+- `skills/codex-ticketing/serve.sh` — server lifecycle wrapper
+  (status/start/stop/restart) with a pid file beside the ticket DB
 - `plugin.json`, `mcp.json`, `skills/`, `.agents/plugins/marketplace.json` —
   Codex plugin packaging (local marketplace)
 - `test_mcp_flow.sh` — the full MCP flow test

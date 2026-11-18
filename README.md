@@ -74,7 +74,14 @@ files stay where they are — point `TICKETS_DB` at an old file to read it.
 ./run.sh            # server running
 ./test/test_mcp_flow.sh   # full MCP flow (initialize, tools, add/get/list/comment/status, error envelopes)
 curl http://127.0.0.1:8080/ui      # local web UI
-curl http://127.0.0.1:8080/api/stats
+```
+
+To run the server as a managed background daemon, use the skill's wrapper
+(`status`/`start`/`stop`/`restart`, pid file next to the ticket DB):
+
+```sh
+./skills/codex-ticketing/serve.sh status
+./skills/codex-ticketing/serve.sh start [--repo-local]
 ```
 
 ## Single-file embedded executable (L5 stretch)

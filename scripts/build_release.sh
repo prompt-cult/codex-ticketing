@@ -113,6 +113,7 @@ CMD
 fi
 find "$WORK" -name '*.lua' -exec sh -c 'chmod 644 "$1"' _ {} \;
 chmod +x "$WORK"/run.sh "$WORK"/test_mcp_flow.sh 2>/dev/null || true
+[ -f "$WORK/skills/codex-ticketing/serve.sh" ] && chmod +x "$WORK/skills/codex-ticketing/serve.sh" || true
 
 # ── 3. Archive + digest ──────────────────────────────────────────────────────
 OUT="$DIST/codex-ticketing-$PLATFORM"
