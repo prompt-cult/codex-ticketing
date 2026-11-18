@@ -62,7 +62,7 @@ local MCP_VERSION = "2024-11-05"
 local STREAMABLE_HTTP_VERSION = "2025-03-26"
 local SUPPORTED_PROTOCOL_VERSIONS = { STREAMABLE_HTTP_VERSION, MCP_VERSION }
 local SERVER_NAME = "codex-ticketing"
-local SERVER_VERSION = "0.1.0"
+local SERVER_VERSION = "0.2.0"
 
 local EMPTY_OBJECT = setmetatable({}, { __jsontype = "object" })
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "codex-ticketing",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Ticketing system for Codex agents: immutable tickets, append-only comments, status-only mutation, session-scoped ownership.",
   "author": { "name": "prompt-cult" },
   "keywords": ["ticketing", "tickets", "project management", "agent"],
