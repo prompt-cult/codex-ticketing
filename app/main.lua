@@ -10,8 +10,12 @@
 -- Environment:
 --   PORT               - Server port (default 8080)
 --   HOST               - Bind host (default 127.0.0.1)
---   TICKETS_DB        - SQLite path (default: .lunet/tickets.db)
+--   TICKETS_DB        - SQLite path override (highest priority, beats --repo-local)
 --   MCP_TRACE         - off|error|warn|info|debug|trace
+--
+-- Command line:
+--   --repo-local      - store the DB in <git repo root>/.ticketing/tickets.db
+--   (default)         - ~/.codex/ticketing/tickets.db (shared; dir created at startup)
 
 io.stdout:setvbuf('no')
 io.stderr:setvbuf('no')
@@ -35,11 +39,14 @@ end
 prepend_module_path()
 
 local VERBOSE = false
+local REPO_LOCAL_DB = false
 local arg_list = arg or {}
 for i = 1, #arg_list do
-    if arg_list[i] == "-v" or arg_list[i] == "--verbose" then
+    local a = arg_list[i]
+    if a == "-v" or a == "--verbose" then
         VERBOSE = true
-        break
+    elseif a == "--repo-local" then
+        REPO_LOCAL_DB = true
     end
 end
 
@@ -86,8 +93,54 @@ end
 
 load_env_file(".env")
 
--- DB path (store itself opens inside the event-loop coroutine below)
-local db_path = getenv("TICKETS_DB") or ".lunet/tickets.db"
+-- DB path (store itself opens inside the event-loop coroutine below).
+-- Resolution order (highest priority first):
+--   1. TICKETS_DB env var      -> exact path as given
+--   2. --repo-local CLI flag   -> <git repo root>/.ticketing/tickets.db
+--   3. default                 -> ~/.codex/ticketing/tickets.db (shared,
+--                                 one ticket DB across all sessions/repos)
+-- The parent directory is created at startup in all three modes.
+local function shell_quote(s)
+    return "'" .. s:gsub("'", "'\\''") .. "'"
+end
+
+local function ensure_dir(path)
+    if os.execute("mkdir -p " .. shell_quote(path)) ~= 0 then
+        error("codex-ticketing: cannot create ticket DB directory: " .. path)
+    end
+end
+
+local function find_repo_root()
+    local dir = getenv("PWD") or "."
+    while dir do
+        if os.execute("test -d " .. shell_quote(dir .. "/.git")) == 0 then
+            return dir
+        end
+        if dir == "/" then break end
+        dir = dir:match("^(.+)/[^/]+$")
+    end
+    return nil
+end
+
+local db_path
+if getenv("TICKETS_DB") then
+    db_path = getenv("TICKETS_DB")
+elseif REPO_LOCAL_DB then
+    local root = find_repo_root() or "."
+    db_path = root .. "/.ticketing/tickets.db"
+else
+    local home = getenv("HOME") or getenv("USERPROFILE")
+    if not home or home == "" then
+        error("codex-ticketing: HOME is not set; set TICKETS_DB to a path or use --repo-local")
+    end
+    db_path = home .. "/.codex/ticketing/tickets.db"
+end
+do
+    local parent = db_path:match("^(.*)/[^/]+$")
+    if parent and parent ~= "" then
+        ensure_dir(parent)
+    end
+end
 local store
 
 local function random_id()
@@ -916,6 +969,7 @@ math.randomseed(os.time())
 lunet.spawn(function()
     store = store_mod.open(db_path)
     trace.info("STORE", "open %s", db_path)
+    print("Store: " .. db_path)
 
     local port = tonumber(getenv("PORT")) or 8080
     local host = getenv("HOST") or "127.0.0.1"

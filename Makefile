@@ -60,3 +60,4 @@ help:
 	@echo "  make test-mcp     - run MCP flow test (server must be running)"
 	@echo "  make clean-all    - remove fetched runtime and types"
 	@echo "Env: PORT, HOST, TICKETS_DB, MCP_TRACE"
+	@echo "DB:  TICKETS_DB env > --repo-local flag > ~/.codex/ticketing/tickets.db (shared default)"

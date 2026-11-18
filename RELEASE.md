@@ -15,7 +15,11 @@ digest beside each asset:
 - `lunet-run[.exe]` + `lunet/` — the pinned upstream runtime, including the
   SQLite driver used by the ticket store
 - `run.sh` (`run.cmd` on Windows) — launcher (default port 8080,
-  `PORT`/`HOST`/`TICKETS_DB` env)
+  `PORT`/`HOST` env). Ticket DB: `TICKETS_DB` env > `--repo-local` flag
+  (`<git repo root>/.ticketing/tickets.db`) > default
+  `~/.codex/ticketing/tickets.db` (shared, dir created at startup).
+- `skills/codex-ticketing/serve.sh` — server lifecycle wrapper
+  (status/start/stop/restart) with a pid file beside the ticket DB
 - `plugin.json`, `mcp.json`, `skills/`, `.agents/plugins/marketplace.json` —
   Codex plugin packaging (local marketplace)
 - `test_mcp_flow.sh` — the full MCP flow test

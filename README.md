@@ -52,13 +52,36 @@ make build          # fetch pinned Lunet runtime + types
 For streaming `codex-ticketing` (or `make run-trace`), set `PORT=8099`
 to match `mcp.json`.
 
+### Ticket DB location
+
+Resolution order (highest priority first):
+
+| Mode | Location |
+|---|---|
+| `TICKETS_DB` env | Exact path as given (parent dir created at startup) |
+| `--repo-local` flag | `<git repo root>/.ticketing/tickets.db` (created at startup) |
+| Default | `~/.codex/ticketing/tickets.db` — one shared ticket DB across all sessions and repos; the directory is created at startup |
+
+By default the DB is shared: every Codex agent on the machine sees the same
+tickets in one SQLite file. Pass `--repo-local` to opt a run into per-repo
+isolation (`.ticketing/` in the nearest git repo root, falling back to the
+cwd outside a repo). There is no migration: existing `.lunet/tickets.db`
+files stay where they are — point `TICKETS_DB` at an old file to read it.
+
 ## Test
 
 ```sh
 ./run.sh            # server running
 ./test/test_mcp_flow.sh   # full MCP flow (initialize, tools, add/get/list/comment/status, error envelopes)
 curl http://127.0.0.1:8080/ui      # local web UI
-curl http://127.0.0.1:8080/api/stats
+```
+
+To run the server as a managed background daemon, use the skill's wrapper
+(`status`/`start`/`stop`/`restart`, pid file next to the ticket DB):
+
+```sh
+./skills/codex-ticketing/serve.sh status
+./skills/codex-ticketing/serve.sh start [--repo-local]
 ```
 
 ## Single-file embedded executable (L5 stretch)

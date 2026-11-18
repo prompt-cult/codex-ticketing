@@ -93,15 +93,27 @@ cp "$ROOT/test/test_mcp_flow.sh" "$WORK/test_mcp_flow.sh" 2>/dev/null || true
 if [ "$PLATFORM" = "windows-amd64" ]; then
   cat > "$WORK/run.cmd" <<'CMD'
 @echo off
+set INVOKED=%CD%
 cd /d "%~dp0"
 if not defined PORT set PORT=8080
 if not defined HOST set HOST=127.0.0.1
-if not defined TICKETS_DB set TICKETS_DB=.lunet\tickets.db
+rem Database location is resolved by app\main.lua:
+rem   TICKETS_DB env   - exact path (wins over everything)
+rem   --repo-local     - <git repo root>\.ticketing\tickets.db
+rem   default          - %%USERPROFILE%%\.codex\ticketing\tickets.db (shared)
+if defined TICKETS_DB goto :run
+for %%a in (%*) do if /i "%%~a"=="--repo-local" goto :repolocal
+goto :run
+:repolocal
+for /f "delims=" %%i in ('git -C "%INVOKED%" rev-parse --show-toplevel 2^>nul') do set TICKETS_DB=%%i\.ticketing\tickets.db
+if not defined TICKETS_DB set TICKETS_DB=%INVOKED%\.ticketing\tickets.db
+:run
 lunet-run.exe app\main.lua %*
 CMD
 fi
 find "$WORK" -name '*.lua' -exec sh -c 'chmod 644 "$1"' _ {} \;
 chmod +x "$WORK"/run.sh "$WORK"/test_mcp_flow.sh 2>/dev/null || true
+[ -f "$WORK/skills/codex-ticketing/serve.sh" ] && chmod +x "$WORK/skills/codex-ticketing/serve.sh" || true
 
 # ── 3. Archive + digest ──────────────────────────────────────────────────────
 OUT="$DIST/codex-ticketing-$PLATFORM"
