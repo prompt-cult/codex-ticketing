@@ -52,6 +52,22 @@ make build          # fetch pinned Lunet runtime + types
 For streaming `codex-ticketing` (or `make run-trace`), set `PORT=8099`
 to match `mcp.json`.
 
+### Ticket DB location
+
+Resolution order (highest priority first):
+
+| Mode | Location |
+|---|---|
+| `TICKETS_DB` env | Exact path as given (parent dir created at startup) |
+| `--repo-local` flag | `<git repo root>/.ticketing/tickets.db` (created at startup) |
+| Default | `~/.codex/ticketing/tickets.db` — one shared ticket DB across all sessions and repos; the directory is created at startup |
+
+By default the DB is shared: every Codex agent on the machine sees the same
+tickets in one SQLite file. Pass `--repo-local` to opt a run into per-repo
+isolation (`.ticketing/` in the nearest git repo root, falling back to the
+cwd outside a repo). There is no migration: existing `.lunet/tickets.db`
+files stay where they are — point `TICKETS_DB` at an old file to read it.
+
 ## Test
 
 ```sh

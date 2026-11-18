@@ -48,6 +48,21 @@ make build          # 下载固定 Lunet 运行时与 types
 ./run.sh            # :8080 启动 MCP 服务器（PORT/HOST/TICKETS_DB 环境变量）
 ```
 
+### 票据数据库位置
+
+优先级从高到低：
+
+| 模式 | 位置 |
+|---|---|
+| `TICKETS_DB` 环境变量 | 指定的确切路径（启动时自动创建父目录） |
+| `--repo-local` 标志 | `<git 仓库根>/.ticketing/tickets.db`（启动时自动创建） |
+| 默认 | `~/.codex/ticketing/tickets.db` — 所有会话与仓库共享一个票据数据库；目录在启动时自动创建 |
+
+默认是共享数据库：同机上的所有 Codex 代理看到同一份 SQLite 票据库。传
+`--repo-local` 可让某次运行按仓库隔离（取最近的 git 仓库根下的
+`.ticketing/`，仓库外则退回当前目录）。不迁移旧数据：`.lunet/tickets.db`
+留在原地 — 用 `TICKETS_DB` 指向旧文件即可读取。
+
 服务 `codex-ticketing` 时设 `PORT=8099`（与 `mcp.json` 一致）。
 
 ## 测试
