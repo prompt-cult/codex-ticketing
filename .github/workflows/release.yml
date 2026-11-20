@@ -13,9 +13,17 @@ on:
 permissions:
   contents: write
 
+# Keyed on the tag ref: re-pushing the same tag cancels the superseded run so a
+# stale build can never publish over the newer one.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-24.04
+    # Four platform bundles plus digest verification and the upload.
+    timeout-minutes: 30
     env:
       LUNET_VERSION: v0.19.0
     steps:
