@@ -100,12 +100,24 @@ load_env_file(".env")
 --   3. default                 -> ~/.codex/ticketing/tickets.db (shared,
 --                                 one ticket DB across all sessions/repos)
 -- The parent directory is created at startup in all three modes.
+local IS_WINDOWS = package.config:sub(1, 1) == "\\"
+
 local function shell_quote(s)
+    if IS_WINDOWS then
+        return '"' .. s:gsub('([%%"`])', "^%1") .. '"'
+    end
     return "'" .. s:gsub("'", "'\\''") .. "'"
 end
 
 local function ensure_dir(path)
-    if os.execute("mkdir -p " .. shell_quote(path)) ~= 0 then
+    local command
+    if IS_WINDOWS then
+        local winpath = path:gsub("/", "\\")
+        command = "if not exist " .. shell_quote(winpath) .. " mkdir " .. shell_quote(winpath)
+    else
+        command = "mkdir -p " .. shell_quote(path)
+    end
+    if os.execute(command) ~= 0 then
         error("codex-ticketing: cannot create ticket DB directory: " .. path)
     end
 end
