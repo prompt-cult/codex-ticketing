@@ -21,7 +21,20 @@
 --   E_COMMENT_MISSING_CONTENT, E_COMMENT_TOO_LONG,
 --   E_COMMENT_TICKET_NOT_FOUND, E_COMMENT_MISSING_SESSION_ID, E_SESSION_NO_ID
 
-local sqlite3 = require("lunet.sqlite3")
+local IS_WINDOWS = package.config:sub(1, 1) == "\\"
+local sqlite3 = IS_WINDOWS and require("app.sqlite_win") or require("lunet.sqlite3")
+
+local function db_exec(db, sql, params)
+  if IS_WINDOWS then return sqlite3.exec(db, sql, params) end
+  if params then return sqlite3.exec_params(db, sql, params) end
+  return sqlite3.exec(db, sql)
+end
+
+local function db_query(db, sql, params)
+  if IS_WINDOWS then return sqlite3.query(db, sql, params) end
+  if params then return sqlite3.query_params(db, sql, params) end
+  return sqlite3.query_ro(db, sql)
+end
 
 local store = {}
 
@@ -72,7 +85,9 @@ end
 -- the file and requests+verifies WAL). Fallback for older runtimes: touch
 -- the file, then set WAL via PRAGMA after connecting.
 local function open_db(path)
-  if path == ":memory:" then
+  if IS_WINDOWS then
+    return sqlite3.open(path)
+  elseif path == ":memory:" then
     return sqlite3.connect(path, {})
   end
   local db = sqlite3.connect(path, { create = "WAL" })
@@ -91,7 +106,7 @@ end
 -- column, soft-delete column — guarded by PRAGMA table_info (backwards
 -- compatible with legacy schemas).
 local function migrate(db)
-  sqlite3.exec(db, [[
+  db_exec(db, [[
     CREATE TABLE IF NOT EXISTS ticket (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       created_at TEXT NOT NULL,
@@ -106,7 +121,7 @@ local function migrate(db)
     );
   ]])
 
-  sqlite3.exec(db, [[
+  db_exec(db, [[
     CREATE TABLE IF NOT EXISTS ticket_comment (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ticket_id INTEGER NOT NULL,
@@ -116,7 +131,7 @@ local function migrate(db)
     );
   ]])
 
-  local cols = sqlite3.query_ro(db, "PRAGMA table_info(ticket)")
+  local cols = db_query(db, "PRAGMA table_info(ticket)")
   local has_type = false
   local has_last_actor = false
   for _, c in ipairs(cols) do
@@ -124,11 +139,11 @@ local function migrate(db)
     if c.name == "last_actor" then has_last_actor = true end
   end
   if not has_type then
-    sqlite3.exec(db, "ALTER TABLE ticket ADD COLUMN type TEXT NOT NULL DEFAULT 'unknown'")
+    db_exec(db, "ALTER TABLE ticket ADD COLUMN type TEXT NOT NULL DEFAULT 'unknown'")
   end
-  sqlite3.exec(db, "CREATE INDEX IF NOT EXISTS idx_ticket_type ON ticket(type)")
+  db_exec(db, "CREATE INDEX IF NOT EXISTS idx_ticket_type ON ticket(type)")
   if not has_last_actor then
-    sqlite3.exec(db, "ALTER TABLE ticket ADD COLUMN last_actor TEXT")
+    db_exec(db, "ALTER TABLE ticket ADD COLUMN last_actor TEXT")
   end
 end
 
@@ -169,14 +184,14 @@ function store.add(self, args)
   end
 
   local ts = now_ts()
-  local ok, err = sqlite3.exec_params(self.db,
+  local ok, err = db_exec(self.db,
     "INSERT INTO ticket (created_at, updated_at, todo, md_content, status, session_id, type) VALUES (?, ?, ?, ?, 'pending', ?, ?)",
     { ts, ts, todo, md_content, session_id, ttype })
   if not ok then
     return nil, error_envelope("E_DB_ERROR", "Database error: " .. tostring(err))
   end
 
-  local rows = sqlite3.query_ro(self.db, "SELECT MAX(id) AS id FROM ticket")
+  local rows = db_query(self.db, "SELECT MAX(id) AS id FROM ticket")
   local id = rows[1].id
   local t = self.get(self, id)
   if not t then
@@ -188,7 +203,7 @@ end
 -- Get a ticket by id, or nil. get returns soft-deleted rows too (the
 -- reference does: only list hides them).
 function store.get(self, id)
-  local rows = sqlite3.query_params(self.db,
+  local rows = db_query(self.db,
     "SELECT * FROM ticket WHERE id = ?", { id })
   if #rows == 0 then return nil end
   return row_to_ticket(rows[1])
@@ -244,7 +259,7 @@ function store.list(self, args)
     sql = sql .. " WHERE " .. table.concat(where, " AND ")
   end
   sql = sql .. " ORDER BY id"
-  local rows = sqlite3.query_params(self.db, sql, params)
+  local rows = db_query(self.db, sql, params)
 
   local out = {}
   for _, r in ipairs(rows) do
@@ -286,15 +301,15 @@ function store.comment(self, args)
   end
 
   local ts = now_ts()
-  local ok, err = sqlite3.exec_params(self.db,
+  local ok, err = db_exec(self.db,
     "INSERT INTO ticket_comment (ticket_id, created_at, content, author_session_id) VALUES (?, ?, ?, ?)",
     { id, ts, content, session_id })
   if not ok then
     return nil, error_envelope("E_DB_ERROR", "Database error: " .. tostring(err))
   end
 
-  local rows = sqlite3.query_ro(self.db, "SELECT MAX(id) AS id FROM ticket_comment")
-  local crows = sqlite3.query_params(self.db,
+  local rows = db_query(self.db, "SELECT MAX(id) AS id FROM ticket_comment")
+  local crows = db_query(self.db,
     "SELECT id, ticket_id, created_at, content, author_session_id FROM ticket_comment WHERE id = ?",
     { rows[1].id })
   return crows[1], nil
@@ -335,7 +350,7 @@ function store.status(self, args)
   local deleted = t.deleted
   if status == "superseded" then deleted = 1 end
 
-  local ok, err = sqlite3.exec_params(self.db,
+  local ok, err = db_exec(self.db,
     "UPDATE ticket SET status = ?, updated_at = ?, last_actor = ?, deleted = ? WHERE id = ?",
     { status, now_ts(), session_id, deleted, id })
   if not ok then
@@ -354,7 +369,7 @@ function store.session_id(self, args)
 end
 
 function store.comments(self, id)
-  local rows = sqlite3.query_params(self.db,
+  local rows = db_query(self.db,
     "SELECT * FROM ticket_comment WHERE ticket_id = ? ORDER BY id", { id })
   local out = {}
   for _, r in ipairs(rows) do
@@ -371,7 +386,7 @@ end
 
 -- Aggregate stats for the about/stats view.
 function store.stats(self)
-  local rows = sqlite3.query_ro(self.db, [[
+  local rows = db_query(self.db, [[
     SELECT
       COUNT(*) AS total,
       COUNT(CASE WHEN deleted = 0 THEN 1 END) AS active,
@@ -382,11 +397,11 @@ function store.stats(self)
   local s = rows[1] or {}
   local by_type = {}
   local by_status = {}
-  for _, r in ipairs(sqlite3.query_ro(self.db,
+  for _, r in ipairs(db_query(self.db,
     "SELECT type, COUNT(*) AS n FROM ticket WHERE deleted = 0 GROUP BY type")) do
     by_type[r.type] = r.n
   end
-  for _, r in ipairs(sqlite3.query_ro(self.db,
+  for _, r in ipairs(db_query(self.db,
     "SELECT status, COUNT(*) AS n FROM ticket WHERE deleted = 0 GROUP BY status")) do
     by_status[r.status] = r.n
   end

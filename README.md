@@ -41,6 +41,10 @@ recover in one call.
 - macOS arm64 (or the matching Lunet runtime archive for your platform).
 - `lua` or `luajit` available for the fetcher.
 - Codex CLI 0.169.0+ for the plugin flow.
+- Windows: the official `sqlite3.dll` must be available on `PATH`; the
+  Windows store adapter uses it directly because Lunet's bundled SQLite
+  extension is not reliable on Windows. The SQLite DLL is available from
+  [sqlite.org](https://www.sqlite.org/download.html).
 
 ## Build & run
 
