@@ -7,14 +7,28 @@ name: ci
 on:
   push:
     branches: [main]
+    # Docs-only pushes cannot change the plugin's runtime behaviour, so skip the
+    # end-to-end flow test for them. pull_request runs are left unfiltered so
+    # every PR still gets a full verification.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
   pull_request:
 
 permissions:
   contents: read
 
+# One run per ref: pushing again to the same branch cancels the superseded run
+# instead of paying for both.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   flow-test:
     runs-on: ubuntu-24.04
+    # Caps a hung runtime fetch / stuck MCP server at minutes, not hours.
+    timeout-minutes: 20
     env:
       LUNET_VERSION: v0.19.0
     steps:
