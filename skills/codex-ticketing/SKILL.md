@@ -32,19 +32,28 @@ what was decided and why.
 ## Server lifecycle
 
 The MCP server must be running for the tools to answer: `http://127.0.0.1:8080/mcp`
-(override with `PORT`). Use `serve.sh` (POSIX sh, shellcheck-clean, lives in
-this skill's directory) instead of spawning servers yourself:
+(override with `PORT`). Use `serve.sh` (POSIX `sh`, executable, and living in
+this skill's directory) instead of spawning servers yourself. It is the
+supported macOS PID-management shim; do not launch `run.sh` in the background
+by hand:
 
 1. **Find**: check the pid file next to the ticket DB —
    `~/.codex/ticketing/server.pid` (default), beside a `TICKETS_DB` path, or
    `<git repo root>/.ticketing/server.pid` (`--repo-local`). A live pid there
    means the shared server is up; **do not spawn another**.
 2. **Start** (stale pid file or none at all): `serve.sh start` — idempotent:
-   it cleans up a stale pid file, starts the shared server, and waits until
-   it answers.
+   it cleans up a stale pid file, starts the server detached from the invoking
+   shell, and waits until it answers. Use `--repo-local` for a database and
+   PID/log files under the current repository's `.ticketing/` directory.
 3. **Restart** after config/env changes: `serve.sh restart` (stop + start).
 4. **Stop**: `serve.sh stop`. **Inspect**: `serve.sh status` (exit non-zero
    when down) reports pid, port, and effective DB path.
+
+The PID file and log live beside the selected database: `.ticketing/server.pid`
+and `.ticketing/server.log` for `--repo-local`, or beside `TICKETS_DB` when it
+is set. The shim uses `setsid` when available on macOS and always detaches
+stdin, so the daemon survives the shell that started it. See the repository's
+[`docs/index.md`](../../docs/index.md) for the operator-facing runbook.
 
 ## Flow
 

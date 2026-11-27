@@ -107,7 +107,14 @@ do_start() {
 	else
 		set --
 	fi
-	nohup sh "$run_sh" "$@" >"$db_dir/server.log" 2>&1 &
+	# Detach the server from the invoking shell as well as its stdin.  On macOS,
+	# nohup alone can still leave the child tied to the short-lived agent shell,
+	# which makes the pid file look valid until the launcher exits.
+	if command -v setsid >/dev/null 2>&1; then
+		nohup setsid sh "$run_sh" "$@" </dev/null >"$db_dir/server.log" 2>&1 &
+	else
+		nohup sh "$run_sh" "$@" </dev/null >"$db_dir/server.log" 2>&1 &
+	fi
 	pid=$!
 	printf '%s\n' "$pid" >"$pid_file"
 	if wait_ready; then

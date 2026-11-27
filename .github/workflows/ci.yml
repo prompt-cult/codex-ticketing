@@ -20,6 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Lunet runtime dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libluajit-5.1-2
+
       - name: Fetch pinned upstream lunet runtime (digest-verified)
         run: ./scripts/fetch_runtime.sh linux-amd64
 

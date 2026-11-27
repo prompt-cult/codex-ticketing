@@ -6,3 +6,4 @@ types/
 *.db-wal
 *.db-shm
 generated/
+.ticketing/
