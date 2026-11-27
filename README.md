@@ -52,6 +52,28 @@ make build          # fetch pinned Lunet runtime + types
 For streaming `codex-ticketing` (or `make run-trace`), set `PORT=8099`
 to match `mcp.json`.
 
+### macOS managed service shim
+
+Run the POSIX shim from this repository. It owns one PID file and one log
+file beside the selected SQLite database, and it refuses to start a second
+copy when the PID is still alive.
+
+```sh
+cd /Users/Shared/prompt-cult/codex-ticketing
+PORT=8099 ./skills/codex-ticketing/serve.sh start --repo-local
+PORT=8099 ./skills/codex-ticketing/serve.sh status --repo-local
+PORT=8099 ./skills/codex-ticketing/serve.sh restart --repo-local
+PORT=8099 ./skills/codex-ticketing/serve.sh stop --repo-local
+```
+
+With `--repo-local`, the database is `.ticketing/tickets.db`, the PID is
+`.ticketing/server.pid`, and the log is `.ticketing/server.log`. Set
+`TICKETS_DB=/absolute/path/tickets.db` instead when the database must live
+elsewhere; the PID and log are then beside that database. The shim is a
+process manager, not a launchd registration: run it from a login shell or
+add the same command to a user-owned launchd plist if automatic login-start
+is required. See the [service operations page](docs/index.md).
+
 ### Ticket DB location
 
 Resolution order (highest priority first):
